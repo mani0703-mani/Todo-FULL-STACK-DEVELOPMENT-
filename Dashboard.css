@@ -1,0 +1,108 @@
+import React, { useEffect, useState } from 'react';
+import API from '../api';
+import './Dashboard.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
+
+const Dashboard = () => {
+  const [tasks, setTasks] = useState([]);
+  const [title, setTitle] = useState('');
+  const navigate = useNavigate();
+
+  const loadTasks = async () => {
+    try {
+      const res = await API.get('/tasks');
+      setTasks(res.data);
+    } catch (error) {
+      toast.error("❌ Failed to load tasks");
+    }
+  };
+
+  const addTask = async () => {
+    if (!title.trim()) {
+      toast.warning('⚠️ Task title cannot be empty');
+      return;
+    }
+    try {
+      await API.post('/tasks', { title });
+      toast.success("✅ Task added!");
+      setTitle('');
+      loadTasks();
+    } catch (error) {
+      toast.error("❌ Failed to add task");
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await API.delete(`/tasks/${id}`);
+      toast.success("🗑️ Task deleted");
+      loadTasks();
+    } catch (error) {
+      toast.error("❌ Failed to delete task");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    toast.success('👋 Logged out!');
+    setTimeout(() => {
+      navigate('/login');
+    }, 1000);
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  return (
+    <>
+      <ToastContainer position="top-right" autoClose={2000} />
+
+      {/* Logout Button Positioned Top Right */}
+      <div className="logout-container">
+        <button onClick={handleLogout} className="logout-button">
+          Logout
+        </button>
+      </div>
+
+      <div className="dashboard-container">
+        <h2 className="dashboard-title">📝 Task Manager</h2>
+
+        <div className="task-form">
+          <input
+            type="text"
+            placeholder="Enter a new task"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="task-input"
+          />
+          <button onClick={addTask} className="task-button">
+            Add Task
+          </button>
+        </div>
+
+        <ul className="task-list">
+          {tasks.length === 0 ? (
+            <p className="empty-message">No tasks yet. Start by adding one!</p>
+          ) : (
+            tasks.map((task) => (
+              <li key={task.id} className="task-item">
+                <span className="task-title">{task.title}</span>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="delete-button"
+                >
+                  Delete
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+    </>
+  );
+};
+
+export default Dashboard;
